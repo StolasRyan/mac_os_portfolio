@@ -3,59 +3,76 @@ import { Tooltip } from "react-tooltip";
 import React, { useRef } from "react";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
-
-
+import useWindowStore from "#store/window";
 
 function Dock() {
-  const dockRef = useRef(null);
+    const {openWindow,closeWindow, windows}= useWindowStore();
+    const dockRef = useRef(null);
 
-  useGSAP(()=>{
+  useGSAP(() => {
     const dock = dockRef.current;
-    if(!dock)return;
+    if (!dock) return;
 
-    const icons = dock.querySelectorAll('.dock-icon');
-    const animateIcons = (mouseX)=>{
-        const {left} = dock.getBoundingClientRect();
+    const icons = dock.querySelectorAll(".dock-icon");
+    const animateIcons = (mouseX) => {
+      const { left } = dock.getBoundingClientRect();
 
-        icons.forEach((icon)=>{
-            const{left: iconLeft, width} = icon.getBoundingClientRect();
-            const center = iconLeft-left + width/2;
-            const distance = Math.abs(mouseX-center);
-            const intensity= Math.exp(-(distance**2.5)/20000);
+      icons.forEach((icon) => {
+        const { left: iconLeft, width } = icon.getBoundingClientRect();
+        const center = iconLeft - left + width / 2;
+        const distance = Math.abs(mouseX - center);
+        const intensity = Math.exp(-(distance ** 2.5) / 20000);
 
-            gsap.to(icon,{
-                scale: 1 + 0.25 * intensity,
-                y: -15 * intensity,
-                duration: 0.2,
-                ease: "power1.out"
-            })
+        gsap.to(icon, {
+          scale: 1 + 0.25 * intensity,
+          y: -15 * intensity,
+          duration: 0.2,
+          ease: "power1.out",
+        });
+      });
+    };
+
+    const handleMouseMove = (e) => {
+      const { left } = dock.getBoundingClientRect();
+
+      animateIcons(e.clientX - left);
+    };
+
+    const resetIcons = () =>
+      icons.forEach((icon) =>
+        gsap.to(icon, {
+          scale: 1,
+          y: 0,
+          duration: 0.3,
+          ease: "power1.out",
         })
+      );
+    dock.addEventListener("mousemove", handleMouseMove);
+    dock.addEventListener("mouseleave", resetIcons);
+
+    return () => {
+      dock.removeEventListener("mousemove", handleMouseMove);
+      dock.removeEventListener("mouseleave", resetIcons);
+    };
+  }, []);
+
+  const toogleApp = (app) => {
+    if(!app.canOpen)return;
+
+    const window = windows[app.id];
+
+    if(!window)return;
+
+    if(window.isOpen){
+        closeWindow(app.id)
+    }else{
+        openWindow(app.id)
     }
 
-     const handleMouseMove=(e)=>{
-        const {left} = dock.getBoundingClientRect();
+    console.log(windows);
+    
+  };
 
-        animateIcons(e.clientX - left);
-     }
-
-     const resetIcons =()=> icons.forEach((icon)=>gsap.to(icon,{
-        scale:1,
-        y:0,
-        duration: 0.3,
-        ease: "power1.out"
-     }))
-       dock.addEventListener("mousemove", handleMouseMove)
-       dock.addEventListener("mouseleave", resetIcons)
-
-       return ()=>{
-        dock.removeEventListener("mousemove", handleMouseMove)
-       dock.removeEventListener("mouseleave", resetIcons)
-       }
-  },[])
-
-
-
-  const toogleApp = (app)=>{};
   return (
     <section id="dock">
       <div ref={dockRef} className="dock-container">
@@ -69,17 +86,18 @@ function Dock() {
               data-tooltip-content={app.name}
               data-tooltip-show={150}
               disabled={!app.canOpen}
-              onClick={()=>toogleApp(app)}
+              onClick={() => toogleApp(app)}
             >
-                <img src={`/images/${app.icon}`} 
+              <img
+                src={`/images/${app.icon}`}
                 alt={app.name}
                 loading="lazy"
-                className={app.canOpen ? '': "opacity-60"}
-                />
+                className={app.canOpen ? "" : "opacity-60"}
+              />
             </button>
           </div>
         ))}
-        <Tooltip id="dock-tooltip" place="top" className="tooltip"/>
+        <Tooltip id="dock-tooltip" place="top" className="tooltip" />
       </div>
     </section>
   );
