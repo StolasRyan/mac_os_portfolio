@@ -9,46 +9,59 @@ function WindowWrapper(Component, windowKey) {
     const { focusWindow, windows } = useWindowStore();
     const { isOpen, zIndex } = windows[windowKey];
     const ref = useRef(null);
+    const draggableRef = useRef(null);
 
-    useGSAP(()=>{
-        const el = ref.current;
-        if(!el || !isOpen)return;
+    useGSAP(() => {
+      const el = ref.current;
+      if (!el || !isOpen) return;
 
-        el.style.display = 'block'
-    },[isOpen]);
+      el.style.display = "block";
+    }, [isOpen]);
 
-    useGSAP(()=>{
-        const el = ref.current;
-        if(!el)return;
+    useGSAP(() => {
+      const el = ref.current;
+      if (!el || !isOpen) return;
 
-       const [instance] = Draggable.create(el,{onPress: ()=> focusWindow(windowKey )});
-       return()=>instance.kill();
-    },[])
+      if (draggableRef.current) {
+        draggableRef.current.kill();
+        draggableRef.current = null;
+      }
 
-    useLayoutEffect(()=>{
-        const el = ref.current;
-        if(!el)return;
-        el.style.display = isOpen ? 'block' : 'none';
-        gsap.fromTo(
-            el,
-            {scale:0.8, opacity:0, y:40},
-            {scale:1, opacity:1, y:0, duration:0.4, ease:"power3.out"}
-        )
-    },[isOpen])
+      const handle = el.querySelector("#window-header") || el;
+
+      const [instance] = Draggable.create(el, {
+        trigger: handle,
+        onPress: () => focusWindow(windowKey),
+        allowContextMenu: true
+      });
+
+      draggableRef.current = instance;
+      
+      return () => {
+        instance.kill();
+        draggableRef.current = null;
+      }
+    }, [isOpen]);
+
+    useLayoutEffect(() => {
+      const el = ref.current;
+      if (!el) return;
+      el.style.display = isOpen ? "block" : "none";
+      gsap.fromTo(
+        el,
+        { scale: 0.8, opacity: 0, y: 40 },
+        { scale: 1, opacity: 1, y: 0, duration: 0.4, ease: "power3.out" },
+      );
+    }, [isOpen]);
 
     return (
-      <section
-        id={windowKey}
-        ref={ref}
-        style={{ zIndex }}
-        className="absolute"
-      >
-        <Component {...props}/>
+      <section id={windowKey} ref={ref} style={{ zIndex }} className="absolute">
+        <Component {...props} />
       </section>
     );
   };
 
-  Wrapped.displayName = `WindowWrapper${Component.displayName || Component.name || "Component"}`
+  Wrapped.displayName = `WindowWrapper${Component.displayName || Component.name || "Component"}`;
 
   return Wrapped;
 }

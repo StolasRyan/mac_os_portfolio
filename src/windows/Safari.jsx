@@ -29,7 +29,7 @@ function Safari() {
         </div>
     </div>
     <div className="blog">
-        <h2>My developer blog</h2>
+        <h2>What im also interested in:</h2>
         <div className="space-y-8">
             {blogPosts.map(({id, date,title, image,link})=>(
                 <div key={id} className="blog-post">
